@@ -26,6 +26,8 @@ qt_add_executable(${PROJECT_NAME}
     src/ui/TopItemsDialog.cpp
     src/ui/widgets/SmoothWheelScroll.h
     src/ui/widgets/SmoothWheelScroll.cpp
+    src/security/Security.h
+    src/security/Security.cpp
 )
 
 # Janela sem console no Windows

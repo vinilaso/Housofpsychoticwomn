@@ -1,4 +1,5 @@
 #include "TokenStore.h"
+#include "../security/Security.h"
 
 #ifndef NOMINMAX
 #	define NOMINMAX
@@ -19,50 +20,6 @@ using namespace hpw::spotify;
 namespace {
 	constexpr auto kSettingsKey = "spotify/session";
 	constexpr qint64 kExpiryMarginSeconds = 60;
-
-	DATA_BLOB toBlob(const QByteArray& data)
-	{
-		return {
-			static_cast<DWORD>(data.size()),
-			reinterpret_cast<BYTE*>(const_cast<char*>(data.data()))
-		};
-	}
-
-	QByteArray takeBlob(DATA_BLOB& blob)
-	{
-		QByteArray result(
-			reinterpret_cast<const char*>(blob.pbData),
-			static_cast<qsizetype>(blob.cbData)
-		);
-
-		LocalFree(blob.pbData);
-		blob = {};
-		return result;
-	}
-
-	QByteArray encrypt(const QByteArray& data)
-	{
-		DATA_BLOB input = toBlob(data);
-
-		DATA_BLOB output{};
-
-		if (!CryptProtectData(&input, nullptr, nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output))
-			return {};
-
-		return takeBlob(output);
-	}
-
-	QByteArray decrypt(const QByteArray& data)
-	{
-		DATA_BLOB input = toBlob(data);
-
-		DATA_BLOB output{};
-
-		if (!CryptUnprotectData(&input, nullptr, nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output))
-			return {};
-
-		return takeBlob(output);
-	}
 }
 
 bool Session::hasValidAccessToken() const
@@ -79,7 +36,7 @@ void TokenStore::save(const Session& session) const
 		{"expires_at", session.expiresAt.toString(Qt::ISODate)}
 	};
 
-	const QByteArray encrypted = encrypt(QJsonDocument(json).toJson(QJsonDocument::Compact));
+	const QByteArray encrypted = hpw::security::encrypt(QJsonDocument(json).toJson(QJsonDocument::Compact));
 
 	if (encrypted.isEmpty()) {
 		qWarning() << "Não foi possível proteger a sessão; ela não será salva.";
@@ -96,7 +53,8 @@ std::optional<Session> TokenStore::load() const
 	if (stored.isEmpty())
 		return std::nullopt;
 
-	const QJsonObject json = QJsonDocument::fromJson(decrypt(stored)).object();
+	const QByteArray decrypted = hpw::security::decrypt(stored);
+	const QJsonObject json = QJsonDocument::fromJson(decrypted).object();
 
 	Session session;
 	session.accessToken = json.value("access_token").toString();
