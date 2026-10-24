@@ -1,10 +1,14 @@
-#include "ui/MainWindow.h"
 #include "spotify/SpotifyClient.h"
+#include "ui/MainWindow.h"
 
 #include <qapplication.h>
 #include <qmessagebox.h>
 
 #include <cstdlib>
+
+using namespace hpw::spotify;
+using namespace hpw::network;
+using namespace hpw::ui;
 
 namespace {
 	constexpr auto kClientIdVariables = "SPOTIFY_CLIENT_ID";

@@ -9,6 +9,9 @@
 #include <chrono>
 
 using namespace std::chrono_literals;
+using namespace hpw::network;
+using namespace hpw::ui;
+using namespace hpw::spotify;
 
 namespace {
 	constexpr auto kPollInterval = 3s;

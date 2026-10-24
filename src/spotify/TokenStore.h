@@ -5,17 +5,19 @@
 
 #include <optional>
 
-struct Session {
-	QString accessToken;
-	QString refreshToken;
-	QDateTime expiresAt;
+namespace hpw::spotify {
+	struct Session {
+		QString accessToken;
+		QString refreshToken;
+		QDateTime expiresAt;
 
-	bool hasValidAccessToken() const;
-};
+		bool hasValidAccessToken() const;
+	};
 
-class TokenStore {
-public:
-	void save(const Session& session) const;
-	std::optional<Session> load() const;
-	void clear() const;
-};
+	class TokenStore {
+	public:
+		void save(const Session& session) const;
+		std::optional<Session> load() const;
+		void clear() const;
+	};
+}

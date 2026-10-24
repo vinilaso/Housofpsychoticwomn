@@ -12,6 +12,11 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 
+using namespace hpw::ui;
+using namespace hpw::network;
+using namespace hpw::spotify;
+using hpw::ui::widgets::SmoothWheelScroll;
+
 namespace {
 	constexpr QSize kInitialSize{ 420, 480 };
 	constexpr QSize kIconSize{ 48, 47 };

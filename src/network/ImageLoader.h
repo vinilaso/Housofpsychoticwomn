@@ -10,22 +10,24 @@
 
 class QNetworkReply;
 
-class ImageLoader : public QObject {
-	Q_OBJECT
+namespace hpw::network {
+	class ImageLoader : public QObject {
+		Q_OBJECT
 
-public:
-	explicit ImageLoader(QObject* parent = nullptr);
+	public:
+		explicit ImageLoader(QObject* parent = nullptr);
 
-	using LoadedCallback = std::function<void(const QPixmap& pixmap)>;
+		using LoadedCallback = std::function<void(const QPixmap& pixmap)>;
 
-	void fetch(const QUrl& url, const QObject* context, LoadedCallback onLoaded);
-	void load(const QUrl& url);
+		void fetch(const QUrl& url, const QObject* context, LoadedCallback onLoaded);
+		void load(const QUrl& url);
 
-signals:
-	void loaded(const QUrl& url, const QPixmap& pixmap);
-	void failed(const QUrl& url, const QString& error);
+	signals:
+		void loaded(const QUrl& url, const QPixmap& pixmap);
+		void failed(const QUrl& url, const QString& error);
 
-private:
-	QNetworkAccessManager m_network;
-	QPointer<QNetworkReply> m_pending;
-};
+	private:
+		QNetworkAccessManager m_network;
+		QPointer<QNetworkReply> m_pending;
+	};
+}

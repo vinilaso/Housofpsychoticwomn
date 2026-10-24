@@ -3,6 +3,8 @@
 #include <qnetworkreply.h>
 #include <qnetworkrequest.h>
 
+using namespace hpw::network;
+
 ImageLoader::ImageLoader(QObject* parent) : QObject(parent)
 {
 }

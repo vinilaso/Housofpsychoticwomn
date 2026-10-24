@@ -14,6 +14,8 @@
 #include <qjsonobject.h>
 #include <qsettings.h>
 
+using namespace hpw::spotify;
+
 namespace {
 	constexpr auto kSettingsKey = "spotify/session";
 	constexpr qint64 kExpiryMarginSeconds = 60;

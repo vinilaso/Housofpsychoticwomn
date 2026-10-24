@@ -10,6 +10,8 @@
 #include <qjsondocument.h>
 #include <qjsonobject.h>
 
+using namespace hpw::spotify;
+
 namespace {
 	constexpr quint16 kRedirectPort = 8888;
 

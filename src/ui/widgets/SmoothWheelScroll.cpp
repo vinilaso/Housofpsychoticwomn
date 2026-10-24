@@ -7,6 +7,8 @@
 #include <QWheelEvent>
 #include <algorithm>
 
+using namespace hpw::ui::widgets;
+
 namespace {
 	constexpr int kDurationMs = 250;
 	constexpr int kPixelsPerNotch = 60;
