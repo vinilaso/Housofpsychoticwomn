@@ -14,20 +14,20 @@ qt_standard_project_setup()
 # --- Executável ------------------------------------------------------------
 qt_add_executable(${PROJECT_NAME}
     src/main.cpp
+    src/network/ImageLoader.h
+    src/network/ImageLoader.cpp
+    src/security/Security.h
+    src/security/Security.cpp
     src/spotify/SpotifyClient.h
     src/spotify/SpotifyClient.cpp
     src/spotify/TokenStore.h
     src/spotify/TokenStore.cpp
-    src/network/ImageLoader.h
-    src/network/ImageLoader.cpp
     src/ui/MainWindow.h
     src/ui/MainWindow.cpp
     src/ui/TopItemsDialog.h
     src/ui/TopItemsDialog.cpp
     src/ui/widgets/SmoothWheelScroll.h
     src/ui/widgets/SmoothWheelScroll.cpp
-    src/security/Security.h
-    src/security/Security.cpp
 )
 
 # Janela sem console no Windows
