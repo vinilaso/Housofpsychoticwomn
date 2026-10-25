@@ -14,8 +14,16 @@ qt_standard_project_setup()
 # --- Executável ------------------------------------------------------------
 qt_add_executable(${PROJECT_NAME}
     src/main.cpp
+    src/network/http/HttpClient.h
+    src/network/http/HttpClient.cpp
+    src/network/http/HttpMethod.h
+    src/network/http/HttpMethod.cpp
+    src/network/http/HttpRequest.h
+    src/network/http/HttpRequest.cpp
     src/network/ImageLoader.h
     src/network/ImageLoader.cpp
+    src/network/UrlPath.h
+    src/network/UrlPath.cpp
     src/security/Security.h
     src/security/Security.cpp
     src/spotify/SpotifyClient.h

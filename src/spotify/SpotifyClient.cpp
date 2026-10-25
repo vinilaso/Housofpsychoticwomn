@@ -1,4 +1,5 @@
 #include "SpotifyClient.h"
+#include "../network/http/HttpClient.h"
 
 #include <qdebug.h>
 #include <qdesktopservices.h>
@@ -106,17 +107,29 @@ namespace {
 		return "medium_term";
 	}
 
-	QString buildTopItemsUri(SpotifyClient::TimeRange range, SpotifyClient::TopType type) 
-	{
-		return QStringLiteral("/me/top/%1?time_range=%2")
-			.arg(getTypeQueryParam(type))
-			.arg(getTimeRangeQueryParam(range));
+	QString buildTopItemsUri(SpotifyClient::TopType type) {
+		return QStringLiteral("/me/top/%1").arg(getTypeQueryParam(type));
 	}
 }
 
-SpotifyClient::SpotifyClient(const QString& clientId, QObject* parent) : QObject(parent)
+SpotifyClient::SpotifyClient(const QString& clientId, HttpClient* httpClient, QObject* parent) 
+	: QObject(parent), 
+	m_httpClient(httpClient)
 {
+	Q_ASSERT(m_httpClient);
 	configureOAuth(clientId);
+	connectSignals();
+}
+
+void SpotifyClient::connectSignals()
+{
+	connect(m_httpClient, &HttpClient::networkErrorOcurred, this, [this](const QByteArray& errorString) {
+		emit errorOcurred(Error::Network, QString::fromUtf8(errorString));
+	});
+
+	connect(m_httpClient, &HttpClient::httpErrorOcurred, this, [this](const int status, const QByteArray& response) {
+		handleHttpError(status, response);
+	});
 }
 
 void SpotifyClient::configureOAuth(const QString& clientId)
@@ -211,15 +224,7 @@ void SpotifyClient::endSession()
 	emit errorOcurred(Error::SessionExpired, {});
 }
 
-QNetworkRequest SpotifyClient::buildRequest(const QString& path) const
-{
-	QNetworkRequest request(QUrl(QString::fromLatin1(kApiBaseUrl) + path));
-	request.setRawHeader("Authorization", "Bearer " + m_session.accessToken.toUtf8());
-	request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-	return request;
-}
-
-void SpotifyClient::sendRequest(const QByteArray& method, const QString& path, ResponseHandler onSuccess)
+void SpotifyClient::sendRequest(HttpRequest& request, HttpClient::SuccessHandler onSuccess)
 {
 	if (m_isRefreshing || m_session.accessToken.isEmpty())
 		return;
@@ -229,27 +234,11 @@ void SpotifyClient::sendRequest(const QByteArray& method, const QString& path, R
 		return;
 	}
 
-	QNetworkReply* reply = m_network.sendCustomRequest(buildRequest(path), method, QByteArray());
+	request
+		.withBaseUrl(QString::fromLatin1(kApiBaseUrl))
+		.withBearerToken(m_session.accessToken);
 
-	connect(reply, &QNetworkReply::finished, this, [this, reply, onSuccess] {
-		reply->deleteLater();
-
-		const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-		const QByteArray body = reply->readAll();
-
-		if (status == 0) {
-			emit errorOcurred(Error::Network, reply->errorString());
-			return;
-		}
-
-		if (status >= HttpStatus::BadRequest) {
-			handleHttpError(status, body);
-			return;
-		}
-
-		if (onSuccess)
-			onSuccess(status, body);
-	});
+	m_httpClient->send(request, this, std::move(onSuccess));
 }
 
 void SpotifyClient::handleHttpError(int status, const QByteArray& body)
@@ -292,53 +281,70 @@ void SpotifyClient::refreshSession()
 
 void SpotifyClient::fetchCurrentTrack()
 {
-	sendRequest("GET", "/me/player/currently-playing", [this](int status, const QByteArray& body) {
+	HttpRequest request = HttpRequest()
+		.withHttpMethod(HttpMethod::Get)
+		.withResource("me/player/currently-playing");
+
+	sendRequest(request, [this](int status, const QByteArray& body) {
 		if (status == HttpStatus::NoContent) {
 			emit nothingPlaying();
 			return;
 		}
 
-		emit currentTrackChanged(parseCurrentlyPlaying(QJsonDocument::fromJson(body).object()));
+		QJsonObject json = QJsonDocument::fromJson(body).object();
+		emit currentTrackChanged(parseCurrentlyPlaying(json));
 	});
 }
 
 void SpotifyClient::fetchTopArtists(const TimeRange range)
 {
-	sendRequest("GET", buildTopItemsUri(range, SpotifyClient::TopType::Artists), [this](int, const QByteArray& body) {
-		emit topArtistsReceived(parseArtists(QJsonDocument::fromJson(body).object()));
+	HttpRequest request = HttpRequest()
+		.withHttpMethod(HttpMethod::Get)
+		.withResource(buildTopItemsUri(TopType::Artists))
+		.withQueryParam("time_range", getTimeRangeQueryParam(range));
+
+	sendRequest(request, [this](int statusCode, const QByteArray& body) {
+		QJsonObject json = QJsonDocument::fromJson(body).object();
+		emit topArtistsReceived(parseArtists(json));
 	});
 }
 
 void SpotifyClient::fetchTopTracks(const TimeRange range) 
 {
-	sendRequest("GET", buildTopItemsUri(range, SpotifyClient::TopType::Tracks), [this](int, const QByteArray& body) {
-		emit topTracksReceived(parseTracks(QJsonDocument::fromJson(body).object()));
+	HttpRequest request = HttpRequest()
+		.withHttpMethod(HttpMethod::Get)
+		.withResource(buildTopItemsUri(TopType::Tracks))
+		.withQueryParam("time_range", getTimeRangeQueryParam(range));
+
+	sendRequest(request, [this](int statusCode, const QByteArray& body) {
+		QJsonObject json = QJsonDocument::fromJson(body).object();
+		emit topTracksReceived(parseTracks(json));
 	});
 }
 
-void SpotifyClient::play()
-{
-	sendCommand("PUT", "/me/player/play");
+void SpotifyClient::play() {
+	sendRequest(HttpMethod::Put, "me/player/play");
 }
 
-void SpotifyClient::pause()
-{
-	sendCommand("PUT", "/me/player/pause");
+void SpotifyClient::pause() {
+	sendRequest(HttpMethod::Put, "me/player/pause");
 }
 
-void SpotifyClient::next()
-{
-	sendCommand("POST", "/me/player/next");
+void SpotifyClient::next() {
+	sendRequest(HttpMethod::Post, "me/player/next");
 }
 
-void SpotifyClient::previous()
-{
-	sendCommand("POST", "/me/player/previous");
+void SpotifyClient::previous() {
+	sendRequest(HttpMethod::Post, "me/player/previous");
 }
 
-void SpotifyClient::sendCommand(const QByteArray& method, const QString& path)
+void SpotifyClient::sendRequest(const HttpMethod& method, const QString& resource)
 {
-	sendRequest(method, path, [this](int, const QByteArray&) {
+	HttpRequest request = HttpRequest()
+		.withHttpMethod(method)
+		.withResource(resource);
+
+	sendRequest(request, [this](int, const QByteArray&) {
 		emit commandSucceeded();
 	});
 }

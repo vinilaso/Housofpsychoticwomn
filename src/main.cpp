@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	SpotifyClient client(clientId);
+	SpotifyClient client(clientId, new HttpClient());
 	ImageLoader imageLoader;
 	MainWindow window(&client, &imageLoader);
 	window.show();

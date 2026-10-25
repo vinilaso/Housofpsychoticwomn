@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TokenStore.h"
+#include "../network/http/HttpClient.h"
 
 #include <qnetworkaccessmanager.h>
 #include <qoauth2authorizationcodeflow.h>
@@ -10,6 +11,8 @@
 #include <functional>
 
 class QNetworkRequest;
+
+using namespace hpw::network::http;
 
 namespace hpw::spotify {
 	struct Track {
@@ -51,7 +54,7 @@ namespace hpw::spotify {
 		};
 		Q_ENUM(TopType);
 
-		explicit SpotifyClient(const QString& clientId, QObject* parent = nullptr);
+		explicit SpotifyClient(const QString& clientId, HttpClient* httpClient, QObject* parent = nullptr);
 
 		void login();
 		void fetchCurrentTrack();
@@ -78,16 +81,17 @@ namespace hpw::spotify {
 		void onGranted();
 		void endSession();
 		void configureOAuth(const QString& clientId);
-		QNetworkRequest buildRequest(const QString& path) const;
-		void sendRequest(const QByteArray& method, const QString& path, ResponseHandler onSuccess);
-		void sendCommand(const QByteArray& method, const QString& path);
 		void handleHttpError(int status, const QByteArray& body);
 		void refreshSession();
+		void sendRequest(HttpRequest& request, HttpClient::SuccessHandler onSuccess);
+		void sendRequest(const HttpMethod& method, const QString& resource);
+		void connectSignals();
 
 		QOAuth2AuthorizationCodeFlow m_oauth;
 		QNetworkAccessManager m_network;
 		TokenStore m_tokenStore;
 		Session m_session;
+		HttpClient* m_httpClient;
 		bool m_isRefreshing = false;
 	};
 }
